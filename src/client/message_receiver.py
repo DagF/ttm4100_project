@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from threading import Thread
+import time
+import json
 
 class MessageReceiver(Thread):
     """
@@ -9,6 +11,9 @@ class MessageReceiver(Thread):
     """
 
     def __init__(self, client, connection):
+        super(MessageReceiver, self).__init__()
+        self.connection = connection
+        self.client = client
         """
         This method is executed when creating a new MessageReceiver object
         """
@@ -19,5 +24,10 @@ class MessageReceiver(Thread):
         # TODO: Finish initialization of MessageReceiver
 
     def run(self):
-        # TODO: Make MessageReceiver receive and handle payloads
-        pass
+        while True:
+            payload = self.connection.recv(1024).strip()
+            payload_dict = json.loads(payload)
+            self.client.receive_message(payload_dict)
+
+
+
