@@ -19,7 +19,8 @@ class MessageReceiver(Thread):
         """
 
         # Flag to run thread as a deamon
-        self.daemon = True
+        'self.daemon = True'
+        self.setDaemon(True)
 
         # TODO: Finish initialization of MessageReceiver
 

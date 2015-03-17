@@ -79,4 +79,4 @@ if __name__ == '__main__':
 
     No alterations is necessary
     """
-    client = Client('localhost', 9997)
+    client = Client('localhost', 2048)

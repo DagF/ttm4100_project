@@ -5,6 +5,8 @@ from client_handler import ClientHandler
 
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+
+
     """
     This class is present so that each client connected will be ran as a own
     thread. In that way, all clients will be served by the server.
@@ -31,9 +33,17 @@ if __name__ == "__main__":
 
     No alterations is necessary
     """
-    HOST, PORT = 'localhost', 9997
+    HOST, PORT = 'localhost', 2048
     print 'server running...'
 
     # Set up and initiate the TCP server
     server = ThreadedTCPServer((HOST, PORT), ClientHandler)
     server.serve_forever()
+
+
+    def broadcast(message):
+        print message
+        '''
+        for client in active_clients:
+            client.send_payload("",message)
+        '''

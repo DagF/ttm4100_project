@@ -31,26 +31,28 @@ class ClientHandler(SocketServer.BaseRequestHandler):
             if self.is_valid_payload( payload ):
                 request = payload.get("request")
                 content = payload.get("content")
+                
+
                 if request == "login":
                     if self.server.login(content, self):
                         self.username = content
 
-                        self.send_message({"timestamp": datetime.datetime.fromtimestamp(time.time()).strftime("%d-%m-%Y %H:%M:%S"),
-                                           "sender": "Server",
-                                           "response": "info",
-                                            "content": self.username
-                                        })
+                        self.send_message(create_login_message())
+
                     else:
-                        self.send_message({"timestamp": datetime.datetime.fromtimestamp(time.time()).strftime("%d-%m-%Y %H:%M:%S"),
-                                           "sender": "Server",
-                                           "response": "error",
-                                            "content": "Username already in use."
-                                        })
+                        self.send_message(create_error_message("Error: Username already in use"))
+
 
                 elif request == "logout":
-                    pass
+                    if self.username is not "":
+                        self.send_message(create_logout_message())
+                    else:
+                       self.send_message(create_error_message("Error: User not logged in"))
+
+
                 elif request == "msg":
-                    pass
+                    self.server.broadcast(create_broadcast_message(content))
+
                 elif request == "names":
                     pass
                 elif request == "help":
@@ -61,9 +63,38 @@ class ClientHandler(SocketServer.BaseRequestHandler):
             else:
                 print("invalid payload")
 
+
+    'Different messages to be sent:'
+    def create_login_message():
+        return create_message(get_time_stamp, "server", "info", "logged in")
+
+    def create_logout_message():
+        return create_message(get_time_stamp, "server","info","logged out")
+
+    def create_error_message(error):
+        return create_message(get_time_stamp, "server","error",error)
+
+    def create_broadcast_message(content): 
+        return create_message(get_time_stamp,self.username,"message",content)
+
+
+
+
+
+    'Other methods:'
     def send_message(self, data):
         payload = json.dumps(data)
         self.connection.sendall(payload)
+
+    def create_message(timeStamp, sender, response, content):
+        return {"timestamp": timeStamp,
+        "sender": sender,
+        "response": response,
+        "content": content}
+
+    def get_time_stamp():
+        return datetime.datetime.fromtimestamp(time.time()).strftime("%d-%m-%Y %H:%M:%S")
+
 
     def is_valid_payload(self, payload):
         if not payload.has_key("request"):
@@ -84,4 +115,5 @@ class ClientHandler(SocketServer.BaseRequestHandler):
     def is_valid_value(self, value):
         a = re.compile("^([a-zA-Z0-9])*$")
         return a.match(value)
+
 
