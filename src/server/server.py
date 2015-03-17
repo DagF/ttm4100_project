@@ -3,7 +3,6 @@ import SocketServer
 from client_handler import ClientHandler
 
 
-
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
 
@@ -24,6 +23,22 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             self.active_clients[username] = client_handler
             return True
 
+    def get_history(self):
+        return self.history
+
+    def get_active_clients(self):
+        return self.active_clients
+
+    def broadcast(self, message):
+        self.history.append(message)
+
+        for client in self.active_clients:
+            client.send_message(message)
+
+    def logout(self, client_handler):
+        self.active_clients.pop(client_handler.get_user_name(), None)
+
+
 
 
 if __name__ == "__main__":
@@ -33,7 +48,7 @@ if __name__ == "__main__":
 
     No alterations is necessary
     """
-    HOST, PORT = 'localhost', 2048
+    HOST, PORT = 'localhost', 2000
     print 'server running...'
 
     # Set up and initiate the TCP server
@@ -41,9 +56,3 @@ if __name__ == "__main__":
     server.serve_forever()
 
 
-    def broadcast(message):
-        print message
-        '''
-        for client in active_clients:
-            client.send_payload("",message)
-        '''

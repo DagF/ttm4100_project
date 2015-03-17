@@ -5,6 +5,9 @@ import re
 import datetime
 import time
 
+help_text = "Help: \nmsg    send a message to all users, specify by sending: msg content\names    get the names of all users\nlogout    logout from the chat\nlogin    login <username>"
+
+
 class ClientHandler(SocketServer.BaseRequestHandler):
     """
     This is the ClientHandler class. Everytime a new client connects to the
@@ -34,51 +37,64 @@ class ClientHandler(SocketServer.BaseRequestHandler):
                 
 
                 if request == "login":
-                    if self.server.login(content, self):
+                    if self.server.login(self, content):
                         self.username = content
-
-                        self.send_message(create_login_message())
+                        self.send_message(self.create_login_message())
+                        history = self.server.get_history()
+                        time.sleep(0.1)
+                        for message in history:
+                            self.send_message(message)
+                            time.sleep(0.1)
 
                     else:
-                        self.send_message(create_error_message("Error: Username already in use"))
+                        self.send_message(self.create_error_message("Error: Username already in use"))
 
 
                 elif request == "logout":
                     if self.username is not "":
-                        self.send_message(create_logout_message())
+                        self.send_message(self.create_logout_message())
+                        self.server.logout(self)
                     else:
-                       self.send_message(create_error_message("Error: User not logged in"))
+                       self.send_message(self.create_error_message("Error: User not logged in"))
 
 
                 elif request == "msg":
-                    self.server.broadcast(create_broadcast_message(content))
+                    self.server.broadcast(self.create_broadcast_message(content))
 
                 elif request == "names":
-                    pass
+                    self.send_message(self.create_names_message())
+
                 elif request == "help":
-                    pass
+                    self.send_message(self.create_help_message())
                 else:
-                    #
-                    pass
+                    self.send_message(self.create_error_message("Error: Unknown query"))
             else:
-                print("invalid payload")
+                self.send_message(self.create_error_message("Error: Invalid characters used in query"))
 
 
     'Different messages to be sent:'
-    def create_login_message():
-        return create_message(get_time_stamp, "server", "info", "logged in")
+    def create_login_message(self):
+        return self.create_message(self.get_time_stamp(), "server", "info", "logged in")
 
-    def create_logout_message():
-        return create_message(get_time_stamp, "server","info","logged out")
+    def create_logout_message(self):
+        return self.create_message(self.get_time_stamp(), "server","info","logged out")
 
-    def create_error_message(error):
-        return create_message(get_time_stamp, "server","error",error)
+    def create_error_message(self, error):
+        return self.create_message(self.get_time_stamp(), "server","error",error)
 
-    def create_broadcast_message(content): 
-        return create_message(get_time_stamp,self.username,"message",content)
+    def create_broadcast_message(self,content):
+        return self.create_message(self.get_time_stamp(), self.username,"message",content)
 
+    def create_help_message(self):
+        return self.create_message(self.get_time_stamp(), "server","info",help_text)
 
+    def create_names_message(self):
+        active_clients = self.server.get_active_clients()
+        names_string = ""
+        for socket, names in active_clients.iteritems():
+            names_string += names + ", "
 
+        return self.create_message(self.get_time_stamp(), "server","info",names_string)
 
 
     'Other methods:'
@@ -86,14 +102,15 @@ class ClientHandler(SocketServer.BaseRequestHandler):
         payload = json.dumps(data)
         self.connection.sendall(payload)
 
-    def create_message(timeStamp, sender, response, content):
+    def create_message(self, timeStamp, sender, response, content):
         return {"timestamp": timeStamp,
         "sender": sender,
         "response": response,
         "content": content}
 
-    def get_time_stamp():
-        return datetime.datetime.fromtimestamp(time.time()).strftime("%d-%m-%Y %H:%M:%S")
+    def get_time_stamp(self):
+        str_time = datetime.datetime.fromtimestamp(time.time()).strftime("%d-%m-%Y %H:%M:%S")
+        return str_time
 
 
     def is_valid_payload(self, payload):
@@ -113,7 +130,10 @@ class ClientHandler(SocketServer.BaseRequestHandler):
         return True
 
     def is_valid_value(self, value):
-        a = re.compile("^([a-zA-Z0-9])*$")
+        a = re.compile("^([a-zA-Z0-9 ])*$")
         return a.match(value)
+
+    def get_user_name(self):
+        return self.username
 
 
