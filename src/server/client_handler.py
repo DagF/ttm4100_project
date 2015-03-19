@@ -4,6 +4,7 @@ import json
 import re
 import datetime
 import time
+import sys
 
 help_text = "Help: \nmsg    send a message to all users, specify by sending: msg content\names    get the names of all users\nlogout    logout from the chat\nlogin    login <username>"
 
@@ -24,52 +25,59 @@ class ClientHandler(SocketServer.BaseRequestHandler):
         self.port = self.client_address[1]
         self.connection = self.request
         self.username = ""
+        self.is_connected = True
 
         # Loop that listens for messages from the client
         while True:
             received_string = self.connection.recv(4096)
             print(received_string)
-            payload = json.loads(received_string)
+            try:
+                payload = json.loads(received_string)
 
-            if self.is_valid_payload( payload ):
-                request = payload.get("request")
-                content = payload.get("content")
-                
+                if self.is_valid_payload( payload ):
+                    request = payload.get("request")
+                    content = payload.get("content")
 
-                if request == "login":
-                    if self.server.login(self, content):
-                        self.username = content
-                        self.send_message(self.create_login_message())
-                        history = self.server.get_history()
-                        time.sleep(0.1)
-                        for message in history:
-                            self.send_message(message)
+                    if request == "login":
+                        if self.server.login(self, content):
+                            self.username = content
+                            self.send_message(self.create_login_message())
+                            history = self.server.get_history()
                             time.sleep(0.1)
+                            for message in history:
+                                self.send_message(message)
+                                time.sleep(0.1)
 
+                        else:
+                            self.send_message(self.create_error_message("Error: Username already in use"))
+
+                    elif request == "logout":
+                        if self.username is not "":
+                            print "logout"
+                            self.server.logout(self)
+                            break
+
+                        else:
+                            self.send_message(self.create_error_message("Error: User not logged in"))
+
+
+                    elif request == "msg":
+                        self.server.broadcast(self.create_broadcast_message(content))
+
+                    elif request == "names":
+                        self.send_message(self.create_names_message())
+
+                    elif request == "help":
+                        self.send_message(self.create_help_message())
                     else:
-                        self.send_message(self.create_error_message("Error: Username already in use"))
-
-
-                elif request == "logout":
-                    if self.username is not "":
-                        self.send_message(self.create_logout_message())
-                        self.server.logout(self)
-                    else:
-                       self.send_message(self.create_error_message("Error: User not logged in"))
-
-
-                elif request == "msg":
-                    self.server.broadcast(self.create_broadcast_message(content))
-
-                elif request == "names":
-                    self.send_message(self.create_names_message())
-
-                elif request == "help":
-                    self.send_message(self.create_help_message())
+                        self.send_message(self.create_error_message("Error: Unknown query"))
                 else:
-                    self.send_message(self.create_error_message("Error: Unknown query"))
-            else:
-                self.send_message(self.create_error_message("Error: Invalid characters used in query"))
+                    self.send_message(self.create_error_message("Error: Invalid characters used in query"))
+            except:
+
+                    print(sys.exc_info())
+                    self.send_message(self.create_error_message("Error: Invalid payload"))
+
 
 
     'Different messages to be sent:'

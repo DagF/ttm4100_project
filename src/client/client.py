@@ -50,7 +50,7 @@ class Client:
         self.connection.connect((self.host, self.server_port))
 
     def disconnect(self):
-        self.connection.close()
+        self.connection.shutdown(socket.SHUT_RDWR)
 
     def receive_message(self, payload):
         sender = payload.get("sender")
@@ -66,7 +66,7 @@ class Client:
                 self.is_logged_in = True
                 print bcolors.LOGIN + "Logged in as: " + self.username + bcolors.ENDC
             if self.is_logging_out == True:
-                self.logout()
+                self.disconnect()
             else:
                 print bcolors.INFO   + bcolors.UNDERLINE  + "Info:\n" + bcolors.ENDC + bcolors.INFO    + payload.get("content") + bcolors.ENDC
         elif response == "message":
@@ -94,6 +94,8 @@ class Client:
                 self.send_message(self.create_names_message())
             elif request == "logout":
                 self.send_message(self.create_logout_message())
+                self.is_logging_out = True
+                self.message_receiver.set_is_logged_in(False)
                 self.disconnect()
                 print "Disconnected from server."
                 break
@@ -136,4 +138,4 @@ if __name__ == '__main__':
 
     No alterations is necessary
     """
-    client = Client('localhost', 2000)
+    client = Client('localhost', 2001)
