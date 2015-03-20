@@ -4,8 +4,9 @@ import json
 import re
 import datetime
 import time
+import sys
 
-help_text = "Help: \nmsg    send a message to all users, specify by sending: msg content\names    get the names of all users\nlogout    logout from the chat\nlogin    login <username>"
+help_text = "\nmsg      send a message to all users, specify by sending: msg content\nnames    get the names of all users\nlogout   logout from the chat\nlogin    login <username>"
 
 
 class ClientHandler(SocketServer.BaseRequestHandler):
@@ -24,18 +25,19 @@ class ClientHandler(SocketServer.BaseRequestHandler):
         self.port = self.client_address[1]
         self.connection = self.request
         self.username = ""
+        self.is_connected = True
+
 
         # Loop that listens for messages from the client
         while True:
             received_string = self.connection.recv(4096)
             print(received_string)
-            payload = json.loads(received_string)
-
-            if self.is_valid_payload( payload ):
+            try:
+                payload = json.loads(received_string)
                 request = payload.get("request")
+                print request
                 content = payload.get("content")
-                
-
+                print content
                 if request == "login":
                     if self.server.login(self, content):
                         self.username = content
@@ -45,31 +47,27 @@ class ClientHandler(SocketServer.BaseRequestHandler):
                         for message in history:
                             self.send_message(message)
                             time.sleep(0.1)
-
                     else:
                         self.send_message(self.create_error_message("Error: Username already in use"))
-
-
                 elif request == "logout":
                     if self.username is not "":
-                        self.send_message(self.create_logout_message())
+                        print "logout"
                         self.server.logout(self)
+                        break
                     else:
-                       self.send_message(self.create_error_message("Error: User not logged in"))
-
-
+                        self.send_message(self.create_error_message("Error: User not logged in"))
                 elif request == "msg":
                     self.server.broadcast(self.create_broadcast_message(content))
-
                 elif request == "names":
                     self.send_message(self.create_names_message())
-
                 elif request == "help":
                     self.send_message(self.create_help_message())
                 else:
                     self.send_message(self.create_error_message("Error: Unknown query"))
-            else:
-                self.send_message(self.create_error_message("Error: Invalid characters used in query"))
+            except:
+                    print(sys.exc_info())
+                    self.send_message(self.create_error_message("Error: Invalid payload"))
+
 
 
     'Different messages to be sent:'
@@ -90,8 +88,9 @@ class ClientHandler(SocketServer.BaseRequestHandler):
 
     def create_names_message(self):
         active_clients = self.server.get_active_clients()
+        print active_clients
         names_string = ""
-        for socket, names in active_clients.iteritems():
+        for names, socket in active_clients.iteritems():
             names_string += names + ", "
 
         return self.create_message(self.get_time_stamp(), "server","info",names_string)
@@ -111,23 +110,6 @@ class ClientHandler(SocketServer.BaseRequestHandler):
     def get_time_stamp(self):
         str_time = datetime.datetime.fromtimestamp(time.time()).strftime("%d-%m-%Y %H:%M:%S")
         return str_time
-
-
-    def is_valid_payload(self, payload):
-        if not payload.has_key("request"):
-            print("request key")
-            return False
-        if not payload.has_key("content"):
-            print("request key")
-            return False
-        if not self.is_valid_value(payload.get("request")):
-            print("request value")
-            return False
-        if not self.is_valid_value(payload.get("content")):
-            print("request value")
-            return False
-
-        return True
 
     def is_valid_value(self, value):
         a = re.compile("^([a-zA-Z0-9 ])*$")
