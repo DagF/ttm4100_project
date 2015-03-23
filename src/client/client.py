@@ -12,7 +12,6 @@ class bcolors:
     LOGIN = '\033[92m'
     ERROR = '\033[91m'
     HISTORY = '\033[90m'
-
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
@@ -31,17 +30,15 @@ class Client:
         This method is run when creating a new client object
         """
 
-        self.username = ""
-        self.is_logged_in = False
-        self.is_logging_out = False
+
 
         # Set up the socket connection to the server
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.message_receiver = MessageReceiver(self,self.connection)
+
         self.run()
         self.message_receiver.start()
 
-        self.handle_login()
         self.handle()
 
 
@@ -62,13 +59,7 @@ class Client:
             print bcolors.ERROR + content + bcolors.ENDC
 
         elif response == "info":
-            if self.is_logged_in == False:
-                self.is_logged_in = True
-                print bcolors.LOGIN + "Logged in as: " + self.username + bcolors.ENDC
-            if self.is_logging_out == True:
-                self.disconnect()
-            else:
-                print bcolors.INFO   + bcolors.UNDERLINE  + "Info:\n" + bcolors.ENDC + bcolors.INFO    + payload.get("content") + bcolors.ENDC
+            print bcolors.INFO   + bcolors.UNDERLINE  + "Info:\n" + bcolors.ENDC + bcolors.INFO    + payload.get("content") + bcolors.ENDC
         elif response == "message":
             print bcolors.MESSAGE + bcolors.BOLD + timestamp + " " + sender + ":\n"+ bcolors.ENDC + bcolors.MESSAGE + content + bcolors.ENDC
 
@@ -77,36 +68,53 @@ class Client:
         self.connection.sendall(payload)
 
 
-    def handle_login(self):
-        while self.is_logged_in == False:
-            self.username = raw_input("Enter username: ")
-            self.send_message(self.create_login_message(self.username))
-            time.sleep(0.2)
+    #Handle method functions & dictionary
+    def handle_help(self,content):
+        self.send_message(self.create_help_message())
+
+    def handle_names(self,content):
+        self.send_message(self.create_names_message())
+
+    def handle_logout(self,content):
+        self.send_message(self.create_logout_message())
+
+    def handle_login(self, content):
+        self.send_message(self.create_login_message(content))
+
+    def handle_msg(self, content):
+        self.send_message(self.create_broadcast_message(content))
+
+
+    handle_options = {
+                "handle": handle_help,
+                "names": handle_names,
+                "logout": handle_logout,
+                "login": handle_login,
+                "msg": handle_msg
+            }
+
 
     def handle(self):
         while 42:
-            payload = raw_input(self.username + ": ")
-            request = payload.split()[0]
+            try:
+                content = ""
+                payload = raw_input()
+                if len( payload.split()) > 1:
+                    content = payload.split(' ',1)[1]
 
-            if request == "help":
-                self.send_message(self.create_help_message())
-            elif request == "names":
-                self.send_message(self.create_names_message())
-            elif request == "logout":
+                request = payload.split()[0]
+                print request
+                if request in self.handle_options:
+                    self.handle_options[request](self, content)
+                    if request == "logout":
+                        break
+                else:
+                    print 'not a valid input'
+            except KeyboardInterrupt:
                 self.send_message(self.create_logout_message())
-                self.is_logging_out = True
-                self.message_receiver.set_is_logged_in(False)
-                self.disconnect()
-                print "Disconnected from server."
                 break
-            else:
-                try:
-                    self.send_message(self.create_broadcast_message(payload))
-                except:
-                    print "Could not interpret query. Try help."
 
 
-            time.sleep(0.2)
 
 
 
@@ -138,4 +146,4 @@ if __name__ == '__main__':
 
     No alterations is necessary
     """
-    client = Client('localhost', 2001)
+    client = Client('localhost', 2002)

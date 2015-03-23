@@ -18,18 +18,19 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
     def login(self, client_handler, username):
         if username in self.active_clients:
-            print "Failed login attempt: " + username
             return False
         else:
             self.active_clients[username] = client_handler
-            print "Login: " + username
             return True
 
     def get_history(self):
         return self.history
 
-    def get_active_clients(self):
-        return self.active_clients
+    def get_active_clients_names(self):
+        names_string = ""
+        for names, socket in active_clients.iteritems():
+            names_string += names + ", "
+        return names_string
 
     def broadcast(self, message):
         self.history.append(message)
@@ -38,9 +39,7 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             client.send_message(message)
 
     def logout(self, client_handler):
-        print(client_handler.get_user_name())
         del self.active_clients[client_handler.get_user_name()]
-        print(self.active_clients)
 
 
 
@@ -52,7 +51,7 @@ if __name__ == "__main__":
 
     No alterations is necessary
     """
-    HOST, PORT = 'localhost', 2001
+    HOST, PORT = 'localhost', 2002
     print 'server running...'
 
     # Set up and initiate the TCP server
