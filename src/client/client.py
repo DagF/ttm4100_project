@@ -86,7 +86,7 @@ class Client:
 
 
     handle_options = {
-                "handle": handle_help,
+                "help": handle_help,
                 "names": handle_names,
                 "logout": handle_logout,
                 "login": handle_login,
@@ -106,8 +106,6 @@ class Client:
                 print request
                 if request in self.handle_options:
                     self.handle_options[request](self, content)
-                    if request == "logout":
-                        break
                 else:
                     print 'not a valid input'
             except KeyboardInterrupt:

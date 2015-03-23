@@ -41,7 +41,7 @@ class ClientHandler(SocketServer.BaseRequestHandler):
     def logout(self, content):
         if self.username is not "":
             self.server.logout(self)
-            self.logged_in_dict = self.logged_out_dict
+            self.active_dict = self.logged_out_dict
 
 
         else:
@@ -76,7 +76,6 @@ class ClientHandler(SocketServer.BaseRequestHandler):
         # Loop that listens for messages from the client
         while True:
             received_string = self.connection.recv(4096)
-            print(received_string)
             try:
                 payload = json.loads(received_string)
                 request = payload.get("request")
@@ -114,7 +113,7 @@ class ClientHandler(SocketServer.BaseRequestHandler):
 
     def create_names_message(self):
         names_string = self.server.get_active_clients_names()
-        return self.create_message(self.get_time_stamp(), "server","info",names_string)
+        return self.create_message(self.get_time_stamp(), "server","info", names_string)
 
 
     'Other methods:'

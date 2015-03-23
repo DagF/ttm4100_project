@@ -28,7 +28,7 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
     def get_active_clients_names(self):
         names_string = ""
-        for names, socket in active_clients.iteritems():
+        for names, socket in self.active_clients.iteritems():
             names_string += names + ", "
         return names_string
 
@@ -40,6 +40,7 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
     def logout(self, client_handler):
         del self.active_clients[client_handler.get_user_name()]
+
 
 
 
